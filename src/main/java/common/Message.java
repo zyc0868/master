@@ -19,8 +19,10 @@ public class Message {
         this.content = content;
     }
 
+
     public static Message generateMessage(String message){
         Message realMessage = new Message();
+        // message is split by Character.UNASSIGNED
         String [] messageSplit  = message.split(Constants.message_sep_string);
         if (messageSplit.length != 3){
             return null;

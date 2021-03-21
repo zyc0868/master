@@ -20,7 +20,9 @@ import java.util.concurrent.Executors;
  * @Email: 1308794149@qq.com
  */
 public class Server {
+    // register center
     private Map<String, MessageDispatch> messageDispatchByName = new ConcurrentHashMap<>();
+    // thread pool support multi client connection
     private ExecutorService executorService = Executors.newCachedThreadPool();
     public Server(){
     }
@@ -29,6 +31,7 @@ public class Server {
         ServerSocket serverSocket = new ServerSocket(Constants.serverPort);
         while (true){
             Socket socket = serverSocket.accept();
+            // find socket connection
             executorService.submit(new HandlerCenter(messageDispatchByName,socket));
         }
     }
@@ -70,7 +73,6 @@ class HandlerCenter implements Runnable{
                 messageDispatchByName.remove(userName).close();
                 return;
             }
-
         }
     }
 
@@ -92,7 +94,8 @@ class HandlerCenter implements Runnable{
     private void handlerNormalMessage(Message message, MessageDispatch serverMessageDispatch){
         MessageDispatch messageDispatch = messageDispatchByName.get(message.getReceiver());
         if (messageDispatch == null){
-            serverMessageDispatch.send(new Message(Constants.serverName,message.getSender(),"user: "+message.getReceiver()+" not exists or log out"));
+            serverMessageDispatch.send(new Message(Constants.serverName,message.getSender(),
+                    "user: "+message.getReceiver()+" not exists or log out"));
         } else {
             messageDispatch.send(message);
         }
@@ -111,6 +114,7 @@ class HandlerCenter implements Runnable{
         String error = null;
         String nameSetString = userNameSetString();
         while (true){
+            // push message actively when first communication
             String content = (error==null ? "" : "register name error:"+error) + "  existing names: [ "+nameSetString+ " ]"+
                     "  please enter your name: ";
             messageDispatch.send(new Message(Constants.serverName,Constants.nameForRegister,content));
@@ -121,11 +125,14 @@ class HandlerCenter implements Runnable{
                 messageDispatch.close();
                 return;
             }
-            String senderName = message.getContent().trim();
-            error = Utils.isValidToUserName(senderName);
-            if (error.equals(Constants.validReceiverName) && !messageDispatchByName.containsKey(senderName)){
-                this.userName = senderName;
+            // valid name
+            String registerName = message.getContent().trim();
+            error = Utils.isValidToUserName(registerName);
+            if (error.equals(Constants.validReceiverName) && !messageDispatchByName.containsKey(registerName)){
+                this.userName = registerName;
+                // register
                 messageDispatchByName.put(userName,messageDispatch);
+                // valid passed message
                 messageDispatch.send(new Message(Constants.serverName,userName,Constants.userRegisterValid));
                 messageDispatch.send(new Message(Constants.serverName,userName,Constants.operationGuide));
                 return;

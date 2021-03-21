@@ -20,18 +20,22 @@ public class MessageDispatch {
     }
 
     public void send(Message message){
+        // transform before write
         writer.println(message.generateMessageString());
         writer.flush();
     }
 
     public Message receive() throws IOException {
         String content = null;
+        // loop waiting to receive message
         while (true){
             content = reader.readLine();
+            // now system is only support single line input
             if (content != null && content.length() > 0){
                 break;
             }
         }
+        // transform
         return Message.generateMessage(content);
     }
 

@@ -38,7 +38,8 @@ public class Client {
     private void initUserInfo(){
         String tempName = null;
         while (true){
-            // server finds the socket connection automatic, so serve will send message first
+            // server finds the socket connection automatic, so server will send message first
+            // the first message contains some operations and existing name list.
             Message validMessage = null;
             try {
                 validMessage = messageDispatch.receive();
@@ -47,15 +48,18 @@ public class Client {
                 return;
             }
             String content = validMessage.getContent();
+            // registered name approved
             if (content.equals(Constants.userRegisterValid)){
                 userName = tempName;
                 System.out.println("register successfully");
                 break;
             }
+            // input name
             System.out.println(content);
             Scanner input = new Scanner(System.in);
-            tempName = input.nextLine();
-            messageDispatch.send(new Message(Constants.nameForRegister,Constants.serverName,tempName.trim()));
+            tempName = input.nextLine().trim();
+            // send register message
+            messageDispatch.send(new Message(Constants.nameForRegister,Constants.serverName,tempName));
         }
     }
 }
@@ -70,13 +74,14 @@ class ReadThread implements Runnable{
         while (true){
             try{
                 Message message = messageDispatch.receive();
-                // judge logout
+                // judge logout, sender is admin(server), content is logout
                 if (message.getSender().equals(Constants.serverName)
                         && message.getContent().trim().equals(Constants.serverSystemCommandLogOut)){
                     messageDispatch.close();
                     System.out.println("logout successfully, good bye");
                     System.exit(0);
                 }
+                // normal message
                 System.out.println("from "+message.getSender()+": "+message.getContent());
             } catch (Exception e){
                 System.out.println("client haves something wrong");
@@ -103,17 +108,23 @@ class WriteThread implements Runnable{
             boolean validMessage = false;
             try{
                 if (inputContent.startsWith(Constants.chatStartSymbol)){
-                    // should valid message receiver
+                    // valid message receiver
                     receiver = inputContent.substring(1, inputContent.indexOf(" ")).trim();
                     if (!Utils.isValidToUserName(receiver).equals(Constants.validReceiverName)){
                         receiver = null;
                     }
+                    // get message content
+                    // here may have some exception, because use substring function
+                    // but input line content maybe is empty , out of index exception may happen.
                     content = inputContent.substring(inputContent.indexOf(" ") + 1);
+                    // valid passed
                     validMessage = true;
                 }else {
                     System.out.println("a chat should start with @someone, if you want to talk to him/her");
                 }
             }catch (Exception e){
+                // catch exception, skip the rest operation
+                // new a line to for inputting again.
                 System.out.println("input message is wrong");
                 continue;
             }
